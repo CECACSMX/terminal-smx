@@ -11,9 +11,10 @@ No hace falta ser administrador: todo se instala solo para tu usuario.
 | 2 | Instala Oh My Posh con `winget`, el gestor de paquetes de Windows. |
 | 3 | Copia el tema oficial elegido a `%USERPROFILE%\.terminal-smx` y guarda el banner. |
 | 4 | Instala la fuente **MesloLGM Nerd Font** con `oh-my-posh font install`. |
-| 5 | Pone esa fuente por defecto en Windows Terminal (guarda antes `settings.json.bak-smx`). |
-| 6 | Cambia la política de ejecución a `RemoteSigned` para tu usuario, si hace falta. |
-| 7 | Añade un bloque a tu perfil de PowerShell 5.1 y 7 (guarda antes una copia `.bak-fecha`). |
+| 5 | Descarga **Terminal-Icons** (versión fija y comprobada con SHA-256): colores e iconos al listar con `ls` o `dir`. |
+| 6 | Pone esa fuente por defecto en Windows Terminal (guarda antes `settings.json.bak-smx`). |
+| 7 | Cambia la política de ejecución a `RemoteSigned` para tu usuario, si hace falta. |
+| 8 | Añade un bloque a tu perfil de PowerShell 5.1 y 7 (guarda antes una copia `.bak-fecha`). |
 
 ## Cómo instalarlo
 
@@ -65,7 +66,8 @@ winget uninstall JanDeDobbeleer.OhMyPosh
 
 | Archivo | Cambio |
 |---|---|
-| `%USERPROFILE%\.terminal-smx\` | Carpeta nueva: `tema.omp.json`, `banner.txt`, `config.json` |
+| `%USERPROFILE%\.terminal-smx\` | Carpeta nueva: `tema.omp.json`, `banner.txt`, `config.json` y `modulos\Terminal-Icons` |
+| `%APPDATA%\powershell\Community\Terminal-Icons\` | Preferencias que crea Terminal-Icons la primera vez que se carga |
 | `Documentos\WindowsPowerShell\Microsoft.PowerShell_profile.ps1` | Bloque entre `# >>> TERMINAL SMX >>>` y `# <<< TERMINAL SMX <<<` |
 | `Documentos\PowerShell\Microsoft.PowerShell_profile.ps1` | El mismo bloque, para PowerShell 7 |
 | `settings.json` de Windows Terminal | `profiles.defaults.font.face` |
@@ -75,6 +77,7 @@ winget uninstall JanDeDobbeleer.OhMyPosh
 | Síntoma | Solución |
 |---|---|
 | Los iconos salen como cuadrados | La pestaña tiene otra fuente. En Windows Terminal: *Configuración → perfil → Apariencia → Tipo de fuente → MesloLGM Nerd Font*. |
+| `ls` sale sin colores | Terminal-Icons no se pudo descargar (sin internet o bloqueado por el centro). Vuelve a ejecutar el instalador. |
 | «No encuentro winget» | Actualiza «Instalador de aplicación» desde Microsoft Store. |
 | No se ve el banner al abrir la terminal | La política de ejecución está bloqueada por el centro. Comprueba con `Get-ExecutionPolicy -List`. |
 | El banner se parte en trozos | La ventana es estrecha: ensánchala o usa un nombre más corto. |
@@ -86,3 +89,4 @@ winget uninstall JanDeDobbeleer.OhMyPosh
 3. ¿Qué diferencia hay entre las políticas `Restricted`, `RemoteSigned` y `Bypass`? ¿Protegen de verdad contra un script malicioso?
 4. Busca en `Instalar-Terminal.ps1` la tabla `$Letras` y añade un carácter nuevo, por ejemplo `!`.
 5. ¿Por qué es arriesgado pegar en la terminal un `irm ... | iex` que no has leído?
+6. El script comprueba la huella SHA-256 de Terminal-Icons antes de instalarlo. ¿Qué es una huella (hash)? Calcula la de un archivo con `Get-FileHash`, cambia una letra y vuelve a calcularla.

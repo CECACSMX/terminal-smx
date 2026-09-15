@@ -8,9 +8,10 @@
       2. Instala Oh My Posh con winget (el gestor de paquetes de Windows).
       3. Copia el tema oficial elegido a tu carpeta personal y dibuja tu banner.
       4. Instala la fuente Meslo Nerd Font (lleva los iconos que usan los temas).
-      5. Pone esa fuente en Windows Terminal.
-      6. Permite que PowerShell cargue tu perfil (politica de ejecucion).
-      7. Anade a tu perfil de PowerShell un bloque que arranca Oh My Posh y muestra el banner.
+      5. Descarga Terminal-Icons: colores e iconos al listar carpetas con ls o dir.
+      6. Pone esa fuente en Windows Terminal.
+      7. Permite que PowerShell cargue tu perfil (politica de ejecucion).
+      8. Anade a tu perfil de PowerShell un bloque que arranca Oh My Posh, Terminal-Icons y el banner.
 
     No necesita permisos de administrador: todo se instala solo para tu usuario.
 
@@ -74,6 +75,11 @@ $ColoresMenu = @('Cyan', 'Green', 'Magenta', 'Yellow', 'Blue', 'Red', 'White')
 # Fuente con iconos (Nerd Font): nombre para "oh-my-posh font install" y nombre que ve Windows.
 $FuenteNerd = 'Meslo'
 $FuenteCara = 'MesloLGM Nerd Font'
+
+# Terminal-Icons: módulo libre (licencia MIT) que da colores e iconos al listado de ls y dir.
+# Fijamos la versión y su huella SHA-256: si el archivo descargado no es idéntico, no se instala.
+$IconosVersion = '0.11.0'
+$IconosSha256  = '0D5086FBD48B4B12D5C00B1E226393B326B38C3E06DBF8825F522188E9DFE4DD'
 
 # Marcas que rodean nuestro bloque en el perfil: así lo cambiamos o quitamos sin tocar lo demás.
 $MarcaInicio = '# >>> TERMINAL SMX >>>'
@@ -378,6 +384,43 @@ function Test-FuenteInstalada {
 #  Cambios en el sistema
 # =====================================================================
 
+function Install-TerminalIcons {
+    # Descarga el módulo de la PowerShell Gallery y lo deja dentro de nuestra carpeta.
+    # No usamos Install-Module: en Windows PowerShell 5.1 pide instalar NuGet y confirmar la galería.
+    $destino = Join-Path $CarpetaSMX 'modulos\Terminal-Icons'
+    $manifiesto = Join-Path $destino 'Terminal-Icons.psd1'
+    if ((Test-Path $manifiesto) -and ((Import-PowerShellDataFile $manifiesto).ModuleVersion -eq $IconosVersion)) {
+        Write-Ok "Ya estaba instalado (versión $IconosVersion)."
+        return
+    }
+
+    # La galería solo acepta TLS 1.2; Windows PowerShell 5.1 a veces intenta protocolos más antiguos.
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    # La barra de progreso hace la descarga muchísimo más lenta en 5.1.
+    $ProgressPreference = 'SilentlyContinue'
+
+    # Un paquete .nupkg es un .zip con otro nombre, y Expand-Archive solo acepta la extensión .zip.
+    $zip = Join-Path $env:TEMP "Terminal-Icons.$IconosVersion.zip"
+    Write-Host '      Descargando de la PowerShell Gallery...'
+    Invoke-WebRequest "https://www.powershellgallery.com/api/v2/package/Terminal-Icons/$IconosVersion" -OutFile $zip -UseBasicParsing
+
+    # La huella SHA-256 cambia por completo si cambia un solo byte del archivo.
+    if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $IconosSha256) {
+        Remove-Item $zip -Force
+        throw 'La huella SHA-256 no coincide: el archivo descargado no es el esperado.'
+    }
+
+    if (Test-Path $destino) { Remove-Item $destino -Recurse -Force }
+    Expand-Archive $zip $destino -Force
+    Remove-Item $zip -Force
+
+    # Quitamos lo que solo le sirve al gestor de paquetes.
+    foreach ($sobra in '_rels', 'package', '[Content_Types].xml', 'Terminal-Icons.nuspec') {
+        Remove-Item -LiteralPath (Join-Path $destino $sobra) -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Write-Ok "Instalado en $destino"
+}
+
 function Set-FuenteWindowsTerminal {
     $rutas = @(
         (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'),
@@ -442,6 +485,8 @@ if (Test-Path (Join-Path $TerminalSMX 'config.json')) {
         $shellSMX = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
         (@(& oh-my-posh init $shellSMX --config $temaSMX) -join "`n") | Invoke-Expression
     }
+    $iconosSMX = Join-Path $TerminalSMX 'modulos\Terminal-Icons\Terminal-Icons.psd1'
+    if (Test-Path $iconosSMX) { Import-Module $iconosSMX }
     $colorSMX = 'Cyan'
     if ([enum]::IsDefined([ConsoleColor], [string]$configSMX.color)) { $colorSMX = [string]$configSMX.color }
     Clear-Host
@@ -490,7 +535,7 @@ function Set-BloquePerfil {
 # =====================================================================
 
 function Invoke-Instalacion {
-    $total = 7
+    $total = 8
 
     Write-Host ''
     Write-Host (New-Banner 'SMX') -ForegroundColor Cyan
@@ -562,12 +607,23 @@ function Invoke-Instalacion {
         Write-Ok 'Instalada.'
     }
 
-    # --- 5. Windows Terminal
-    Write-Paso 5 $total 'Windows Terminal'
+    # --- 5. Colores e iconos al listar
+    Write-Paso 5 $total 'Colores e iconos al listar carpetas (Terminal-Icons)'
+    try {
+        Install-TerminalIcons
+    }
+    catch {
+        # No es imprescindible: si falla (sin internet, proxy del centro...) seguimos con lo demás.
+        Write-Aviso "No se ha podido instalar: $($_.Exception.Message)"
+        Write-Aviso 'La terminal funcionará igual, pero ls saldrá sin colores.'
+    }
+
+    # --- 6. Windows Terminal
+    Write-Paso 6 $total 'Windows Terminal'
     Set-FuenteWindowsTerminal
 
-    # --- 6. Política de ejecución
-    Write-Paso 6 $total 'Permiso para cargar el perfil'
+    # --- 7. Política de ejecución
+    Write-Paso 7 $total 'Permiso para cargar el perfil'
     # Con la política "Restricted" (la de fábrica en Windows) PowerShell no ejecuta el perfil.
     # "RemoteSigned" permite scripts creados en tu equipo y exige firma a los descargados.
     $politica = Get-ExecutionPolicy
@@ -588,8 +644,8 @@ function Invoke-Instalacion {
         }
     }
 
-    # --- 7. Perfil
-    Write-Paso 7 $total 'Perfil de PowerShell'
+    # --- 8. Perfil
+    Write-Paso 8 $total 'Perfil de PowerShell'
     $bloque = New-BloquePerfil
     foreach ($ruta in Get-RutasPerfil) {
         Set-BloquePerfil -Ruta $ruta -Bloque $bloque
