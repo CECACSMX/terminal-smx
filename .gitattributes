@@ -1,0 +1,4 @@
+# Los .bat deben llevar finales de linea CRLF o cmd.exe los lee mal.
+*.bat eol=crlf
+# El .ps1 se guarda byte a byte: sin BOM y sin cambiar los finales de linea.
+*.ps1 -text
