@@ -11,7 +11,7 @@ No hace falta ser administrador: todo se instala solo para tu usuario.
 | 2 | Instala Oh My Posh con `winget`, el gestor de paquetes de Windows. |
 | 3 | Copia el tema oficial elegido a `%USERPROFILE%\.terminal-smx` y guarda el banner. |
 | 4 | Instala la fuente **MesloLGM Nerd Font** con `oh-my-posh font install`. |
-| 5 | Descarga **Terminal-Icons** (versión fija y comprobada con SHA-256): colores e iconos al listar con `ls` o `dir`. |
+| 5 | Descarga **Terminal-Icons** (versión fija y comprobada con SHA-256): colores e iconos al listar con `ls` o `dir`, y la ruta de la carpeta en el color del banner. |
 | 6 | Pone esa fuente por defecto en Windows Terminal (guarda antes `settings.json.bak-smx`). |
 | 7 | Cambia la política de ejecución a `RemoteSigned` para tu usuario, si hace falta. |
 | 8 | Añade un bloque a tu perfil de PowerShell 5.1 y 7 (guarda antes una copia `.bak-fecha`). |

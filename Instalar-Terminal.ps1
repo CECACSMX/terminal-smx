@@ -421,6 +421,29 @@ function Install-TerminalIcons {
     Write-Ok "Instalado en $destino"
 }
 
+function Set-ColorRutaIconos {
+    # Terminal-Icons pinta los nombres, pero la cabecera "Directorio: C:\..." sale sin color.
+    # Retocamos su archivo de formato: antes del texto emite el color guardado en
+    # $global:ColorRutaSMX (lo define el perfil) y al final de la ruta vuelve al color normal.
+    $formato = Join-Path $CarpetaSMX 'modulos\Terminal-Icons\Terminal-Icons.format.ps1xml'
+    if (-not (Test-Path $formato)) { return }
+    $xml = [IO.File]::ReadAllText($formato)
+    if ($xml.Contains('ColorRutaSMX')) { Write-Ok 'La ruta de las carpetas ya sale en color.'; return }
+
+    $texto = '<Text AssemblyName="System.Management.Automation" BaseName="FileSystemProviderStrings" ResourceId="DirectoryDisplayGrouping"/>'
+    $ruta  = '$_.PSParentPath.Replace("Microsoft.PowerShell.Core\FileSystem::", "")'
+    if (-not ($xml.Contains($texto) -and $xml.Contains($ruta))) {
+        Write-Aviso 'No reconozco el formato de Terminal-Icons: la ruta de las carpetas saldra sin color.'
+        return
+    }
+    # [char]27 es ESC: con el codigo que le sigue, la terminal cambia de color (secuencias ANSI).
+    $inicio = '<ExpressionBinding><ScriptBlock>if ($global:ColorRutaSMX) { $global:ColorRutaSMX }</ScriptBlock></ExpressionBinding>'
+    $fin    = ' + $(if ($global:ColorRutaSMX) { [string][char]27 + ''[0m'' })'
+    $xml = $xml.Replace($texto, $inicio + $texto).Replace($ruta, $ruta + $fin)
+    [IO.File]::WriteAllText($formato, $xml, $Utf8SinBom)
+    Write-Ok 'La ruta de las carpetas saldra en el color del banner.'
+}
+
 function Set-FuenteWindowsTerminal {
     $rutas = @(
         (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'),
@@ -489,6 +512,8 @@ if (Test-Path (Join-Path $TerminalSMX 'config.json')) {
     if (Test-Path $iconosSMX) { Import-Module $iconosSMX }
     $colorSMX = 'Cyan'
     if ([enum]::IsDefined([ConsoleColor], [string]$configSMX.color)) { $colorSMX = [string]$configSMX.color }
+    $ansiSMX = @{ Cyan = 96; Green = 92; Magenta = 95; Yellow = 93; Blue = 94; Red = 91; White = 97 }
+    if ($ansiSMX.ContainsKey($colorSMX)) { $global:ColorRutaSMX = [string][char]27 + "[$($ansiSMX[$colorSMX])m" }
     Clear-Host
     Write-Host ''
     Write-Host (Get-Content (Join-Path $TerminalSMX 'banner.txt') -Raw -Encoding UTF8) -ForegroundColor $colorSMX
@@ -611,6 +636,7 @@ function Invoke-Instalacion {
     Write-Paso 5 $total 'Colores e iconos al listar carpetas (Terminal-Icons)'
     try {
         Install-TerminalIcons
+        Set-ColorRutaIconos
     }
     catch {
         # No es imprescindible: si falla (sin internet, proxy del centro...) seguimos con lo demás.
