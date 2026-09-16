@@ -53,6 +53,25 @@ Con la opción B, los parámetros van al final: `& ([scriptblock]::Create((irm '
 
 Vuelve a ejecutar `INSTALAR.bat`. Sustituye el bloque anterior; no lo duplica.
 
+## Configurar Windows Terminal a tu gusto
+
+Doble clic en **`CONFIGURAR.bat`**. Es independiente del instalador: funciona aunque no tengas Oh My Posh.
+Te pregunta, con menús, y en cada pregunta **Intro deja ese ajuste como está**:
+
+| Bloque | Qué puedes elegir | Clave en `settings.json` |
+|---|---|---|
+| Colores | Esquema de colores de serie (Campbell, One Half Dark, Tango Light...) | `profiles.defaults.colorScheme` |
+| Fuente y cursor | Tipo y tamaño de letra; forma y color del cursor | `font.face`, `font.size`, `cursorShape`, `cursorColor` |
+| Arranque y ventana | Pestaña inicial, carpeta de inicio, ventana normal / maximizada / pantalla completa, tamaño, fondo de escritorio suave | `defaultProfile`, `startingDirectory`, `launchMode`, `initialCols`, `initialRows`, `backgroundImage` |
+
+Si lo abres **dentro de Windows Terminal**, verás los cambios al momento y podrás repetir si no te gustan.
+Antes de guardar hace una copia `settings.json.bak-config-fecha`.
+
+Para dejarlo como estaba: **`RESTAURAR-CONFIG.bat`**. La primera vez que el script toca un ajuste apunta su valor
+anterior en `settings.json.smx-original.json`; restaurar devuelve solo esos ajustes y deja el resto.
+
+Si un perfil concreto (por ejemplo, «Windows PowerShell») tiene su propio ajuste, ese manda sobre el general: el script te avisa.
+
 ## Desinstalar
 
 Doble clic en **`DESINSTALAR.bat`**. Quita el bloque de los perfiles y la carpeta `.terminal-smx`.
@@ -70,7 +89,8 @@ winget uninstall JanDeDobbeleer.OhMyPosh
 | `%APPDATA%\powershell\Community\Terminal-Icons\` | Preferencias que crea Terminal-Icons la primera vez que se carga |
 | `Documentos\WindowsPowerShell\Microsoft.PowerShell_profile.ps1` | Bloque entre `# >>> TERMINAL SMX >>>` y `# <<< TERMINAL SMX <<<` |
 | `Documentos\PowerShell\Microsoft.PowerShell_profile.ps1` | El mismo bloque, para PowerShell 7 |
-| `settings.json` de Windows Terminal | `profiles.defaults.font.face` |
+| `settings.json` de Windows Terminal | `profiles.defaults.font.face` (instalador) y los ajustes que elijas en `CONFIGURAR.bat` |
+| `settings.json.smx-original.json` | Valores de antes de `CONFIGURAR.bat`; lo borra `RESTAURAR-CONFIG.bat` |
 
 ## Problemas frecuentes
 
@@ -90,3 +110,5 @@ winget uninstall JanDeDobbeleer.OhMyPosh
 4. Busca en `Instalar-Terminal.ps1` la tabla `$Letras` y añade un carácter nuevo, por ejemplo `!`.
 5. ¿Por qué es arriesgado pegar en la terminal un `irm ... | iex` que no has leído?
 6. El script comprueba la huella SHA-256 de Terminal-Icons antes de instalarlo. ¿Qué es una huella (hash)? Calcula la de un archivo con `Get-FileHash`, cambia una letra y vuelve a calcularla.
+7. Abre `settings.json` de Windows Terminal (*Configuración → Abrir archivo JSON*) después de usar `CONFIGURAR.bat`.
+   ¿Dónde están tus cambios? ¿Qué diferencia hay entre ponerlos en `profiles.defaults` o dentro de un perfil?
