@@ -72,6 +72,9 @@ $TemasMenu = @('jandedobbeleer', 'atomic', 'catppuccin_mocha', 'dracula', 'tokyo
 # Colores de consola que acepta Write-Host -ForegroundColor.
 $ColoresMenu = @('Cyan', 'Green', 'Magenta', 'Yellow', 'Blue', 'Red', 'White')
 
+# Colores ("texto,fondo") con los que se turnan las carpetas de la ruta en el prompt.
+$ColoresRuta = @('#1e1e2e,#89b4fa', '#1e1e2e,#a6e3a1', '#1e1e2e,#f9e2af', '#1e1e2e,#f38ba8', '#1e1e2e,#cba6f7', '#1e1e2e,#94e2d5')
+
 # Fuente con iconos (Nerd Font): nombre para "oh-my-posh font install" y nombre que ve Windows.
 $FuenteNerd = 'Meslo'
 $FuenteCara = 'MesloLGM Nerd Font'
@@ -444,6 +447,30 @@ function Set-ColorRutaIconos {
     Write-Ok 'La ruta de las carpetas saldra en el color del banner.'
 }
 
+function Copy-TemaConRutaEnColores {
+    # Copia el tema oficial cambiando su segmento "path" (la ruta del prompt):
+    # muestra la ruta entera y pinta cada carpeta con un color distinto, para ver bien cada nivel.
+    param([string]$Origen, [string]$Destino)
+
+    $tema = [IO.File]::ReadAllText($Origen) | ConvertFrom-Json
+    foreach ($bloque in @($tema.blocks)) {
+        foreach ($segmento in @($bloque.segments)) {
+            if ($segmento.type -ne 'path') { continue }
+            # Las versiones nuevas de Oh My Posh llaman "options" a lo que antes era "properties".
+            $nombre = 'options'
+            if ($segmento.PSObject.Properties['properties']) { $nombre = 'properties' }
+            if (-not $segmento.PSObject.Properties[$nombre]) {
+                $segmento | Add-Member -NotePropertyName $nombre -NotePropertyValue ([pscustomobject]@{})
+            }
+            $opciones = $segmento.$nombre
+            # "full" = ruta completa; "cycle" = lista de colores "texto,fondo" que se van turnando por carpeta.
+            $opciones | Add-Member -Force -NotePropertyName style -NotePropertyValue 'full'
+            $opciones | Add-Member -Force -NotePropertyName cycle -NotePropertyValue $ColoresRuta
+        }
+    }
+    [IO.File]::WriteAllText($Destino, ($tema | ConvertTo-Json -Depth 32), $Utf8SinBom)
+}
+
 function Set-FuenteWindowsTerminal {
     $rutas = @(
         (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'),
@@ -605,7 +632,7 @@ function Invoke-Instalacion {
     else {
         $origen = Join-Path $carpetaTemas "$($datos.Tema).omp.json"
         if (-not (Test-Path $origen)) { throw "El tema '$($datos.Tema)' no existe. Los disponibles están en: $carpetaTemas" }
-        Copy-Item $origen (Join-Path $CarpetaSMX 'tema.omp.json') -Force
+        Copy-TemaConRutaEnColores -Origen $origen -Destino (Join-Path $CarpetaSMX 'tema.omp.json')
         Write-Ok "Tema copiado a $CarpetaSMX\tema.omp.json"
     }
     [IO.File]::WriteAllText((Join-Path $CarpetaSMX 'banner.txt'), (New-Banner $datos.Texto), $Utf8SinBom)
